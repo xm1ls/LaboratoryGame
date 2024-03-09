@@ -9,12 +9,17 @@ public class PlayerController : MonoBehaviour
     private Animator animator;
     private Rigidbody2D rb;
     private BoxCollider2D bc;
+    public Transform fp;
     private bool facingRight = true;
     private bool isJumping = false;
     private bool isCrouching = false;
+    private bool isReadyToShoot = false;
+    private bool isShooting = false;
     public float playerSpeed = 10f;
     public float playerJumpForce = 10f;
+    public float fireForce = 10f;
     public LayerMask GroundLayer;
+    public GameObject projectilePrefab;
 
     [Range(0, .3f)]
     [SerializeField]
@@ -35,6 +40,19 @@ public class PlayerController : MonoBehaviour
     {
         horizontalMove = Input.GetAxisRaw("Horizontal");
         verticalMove = Input.GetAxisRaw("Vertical");
+
+        if (Input.GetButtonDown("Fire1"))
+        {
+            if (isReadyToShoot)
+            {
+                isShooting = true;
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            isReadyToShoot = !isReadyToShoot;
+        }
 
         if (!isJumping)
         {
@@ -67,7 +85,7 @@ public class PlayerController : MonoBehaviour
 
             if (rb.velocity.y < 0)
             {
-                animator.SetFloat("verticalMovement", -1);
+                // animator.SetFloat("verticalMovement", -1);
             }
 
             if (bc.IsTouchingLayers(GroundLayer.value))
@@ -77,13 +95,15 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if(isCrouching)
+        if (verticalMove < 0)
         {
-            animator.SetFloat("Run_Animation_speed", 0.1f);
+            isCrouching = true;
+            animator.speed = 0.5f;
         }
-        if(!isCrouching)
+        else if (verticalMove == 0 || verticalMove > 0)
         {
-            animator.SetFloat("Run_Animation_speed", 1);
+            isCrouching = false;
+            animator.speed = 1;
         }
     }
 
@@ -102,16 +122,6 @@ public class PlayerController : MonoBehaviour
             animator.SetFloat("horizontalMovement", 0);
         }
 
-        if (verticalMove < 0)
-        {
-            isCrouching = true;
-        }
-
-        if (verticalMove == 0 || verticalMove > 0)
-        {
-            isCrouching = false;
-        }
-
         if (horizontalMove != 0)
         {
             if (!isCrouching)
@@ -123,7 +133,7 @@ public class PlayerController : MonoBehaviour
                     m_MovementSmoothing
                 );
             }
-            if(isCrouching)
+            if (isCrouching)
             {
                 rb.velocity = Vector3.SmoothDamp(
                     rb.velocity,
@@ -133,14 +143,48 @@ public class PlayerController : MonoBehaviour
                 );
             }
         }
+
+        if (isReadyToShoot)
+        {
+            animator.SetBool("IsReadyToShoot", true);
+            if (isShooting)
+            {
+                FireProjectile();
+                isShooting = false;
+            }
+        }
+        if (!isReadyToShoot)
+        {
+            animator.SetBool("IsReadyToShoot", false);
+        }
+    }
+
+    void FireProjectile()
+    {
+        GameObject projectile = Instantiate(projectilePrefab, fp.position, fp.rotation);
+
+        Vector3 theScale = projectile.transform.localScale;
+        theScale.x *= transform.localScale.x / Mathf.Abs(transform.localScale.x);
+        projectile.transform.localScale = theScale;
+
+        Rigidbody2D rigidbody = projectile.GetComponent<Rigidbody2D>();
+        Animator animator = projectile.GetComponent<Animator>();
+        // Collider2D circleCollider = projectile.GetComponent<CircleCollider2D>();
+
+        // Debug.Log(circleCollider.IsTouchingLayers(GroundLayer.value));
+
+        rigidbody.AddForce(new Vector2(transform.localScale.x * fireForce, 0), ForceMode2D.Impulse);
+        animator.SetBool("PlayOnce", true);
+
+        // if (circleCollider.IsTouchingLayers(GroundLayer.value))
+        // {
+        //     Destroy(projectile);
+        // }
     }
 
     void Flip()
     {
-        // Switch the way the player is labelled as facing.
         facingRight = !facingRight;
-
-        // Multiply the player's x local scale by -1.
         Vector3 theScale = transform.localScale;
         theScale.x *= -1;
         transform.localScale = theScale;
