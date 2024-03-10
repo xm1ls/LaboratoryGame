@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class PlayerController : MonoBehaviour
 {
@@ -15,10 +16,15 @@ public class PlayerController : MonoBehaviour
     private bool isCrouching = false;
     private bool isReadyToShoot = false;
     private bool isShooting = false;
+    private bool isReloading = false;
     public float playerSpeed = 10f;
     public float playerJumpForce = 10f;
     public float fireForce = 10f;
+    public int bullets = 10;
+    public int bulletsCapacity = 10;
     public LayerMask GroundLayer;
+    public TextMeshProUGUI textMeshPro;
+    public GameObject uiElement;
     public GameObject projectilePrefab;
 
     [Range(0, .3f)]
@@ -32,6 +38,9 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         bc = GetComponent<BoxCollider2D>();
+
+        // textMeshPro.text = bullets.ToString();
+        uiElement.SetActive(isReadyToShoot);
     }
 
     void Start() { }
@@ -52,7 +61,14 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.E))
         {
             isReadyToShoot = !isReadyToShoot;
+            uiElement.SetActive(isReadyToShoot);
         }
+
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            isReloading = true;
+        }
+    
 
         if (!isJumping)
         {
@@ -147,10 +163,23 @@ public class PlayerController : MonoBehaviour
         if (isReadyToShoot)
         {
             animator.SetBool("IsReadyToShoot", true);
+            
             if (isShooting)
             {
-                FireProjectile();
+                if(bullets > 0)
+                {
+                    FireProjectile();
+                    bullets--;
+                    textMeshPro.text = bullets.ToString();
+                }
+
                 isShooting = false;
+            }
+            if(isReloading)
+            {
+                bullets = bulletsCapacity;
+                textMeshPro.text = bullets.ToString();
+                isReloading = false;
             }
         }
         if (!isReadyToShoot)
